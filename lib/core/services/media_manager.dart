@@ -328,4 +328,37 @@ class MediaManager {
     FlutterForegroundTask.sendDataToTask(
         {'action': 'upload', 'mediaId': mediaId, 'filePath': filePath});
   }
+
+  Future<void> retryUpload(
+    String mediaId,
+    String filePath,
+    int retries, {
+    int maxRetries = 5,
+  }) async {
+    if (retries >= maxRetries) {
+      print("🚫 Max retries reached for $mediaId");
+      return;
+    }
+
+    // ⏳ exponential backoff: 2^retries seconds
+    final delay = Duration(seconds: 1 << retries);
+    print("⏳ Retrying $mediaId in ${delay.inSeconds}s (attempt $retries)");
+
+    await Future.delayed(delay);
+
+    final payload = {
+      'action': 'upload',
+      'mediaId': mediaId,
+      'filePath': filePath,
+    };
+
+    FlutterForegroundTask.sendDataToTask(payload);
+
+    await database.updateRecord(mediaId, {
+      'retries': retries + 1,
+    });
+
+    // Optional: schedule another retry automatically if needed
+    // retryUpload(mediaId, filePath, retries: retries + 1);
+  }
 }

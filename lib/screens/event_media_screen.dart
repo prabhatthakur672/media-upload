@@ -143,6 +143,77 @@ class _EventMediaScreenState extends ConsumerState<EventMediaScreen> {
 
   final Map<String, DateTime> _lastUpdateTimes = {};
 
+  // void _onReceiveTaskData(Object data) async {
+  //   try {
+  //     Map payload;
+  //     if (data is String) {
+  //       payload = jsonDecode(data) as Map;
+  //     } else if (data is Map) {
+  //       payload = Map.from(data);
+  //     } else {
+  //       return;
+  //     }
+  //
+  //     final mediaId = payload['mediaId']?.toString();
+  //     final status = payload['status']?.toString();
+  //     final progress = (payload['progress'] is num)
+  //         ? (payload['progress'] as num).toDouble()
+  //         : null;
+  //
+  //     final s3Url = payload['s3Url']?.toString();
+  //     final isUploadToS3 = payload['isUploadToS3'] as bool?;
+  //
+  //     if (mediaId == null || status == null) return;
+  //
+  //     final now = DateTime.now();
+  //     final lastUpdate = _lastUpdateTimes[mediaId];
+  //
+  //     // ✅ throttle uploading updates (every 300ms max)
+  //     if (status == "uploading" && progress != null && progress < 1.0) {
+  //       if (lastUpdate != null &&
+  //           now.difference(lastUpdate).inMilliseconds < 400) {
+  //         return; // skip this frequent update
+  //       }
+  //     }
+  //
+  //     final Map<String, dynamic> update = {'status': status};
+  //     if (progress != null) update['progress'] = progress;
+  //
+  //     if (status == 'success' && s3Url != null && isUploadToS3 == true) {
+  //       update['isUploadToS3'] = true;
+  //
+  //       final fileName = s3Url.split('/').last;
+  //       final cachedPath = await downloadManager.downloadFile(s3Url, fileName);
+  //       print('Cached media path: $cachedPath');
+  //       final mediaType = MediaUtils.resolveMediaType(fileName);
+  //
+  //       if (cachedPath != null) {
+  //         update['cachedMedia'] = cachedPath;
+  //         update['isMediaCached'] = true;
+  //         print("✅ Cached $fileName at $cachedPath");
+  //       }
+  //
+  //       if (mediaType == 'video' && cachedPath != null) {
+  //         final thumbnail = await MediaUtils.generateVideoThumb(cachedPath);
+  //         final videoDuration = await MediaUtils.getVideoDuration(cachedPath);
+  //
+  //         update['thumbnail'] = thumbnail;
+  //         update['videoDuration'] = videoDuration;
+  //       }
+  //
+  //       _lastUpdateTimes.remove(mediaId);
+  //       print("🧹 Cleaned up throttling map for $mediaId");
+  //     }
+  //
+  //     await db.updateRecord(mediaId, update);
+  //
+  //     // ✅ update timestamp
+  //     _lastUpdateTimes[mediaId] = now;
+  //   } catch (e) {
+  //     print("Error in _onReceiveTaskData: $e");
+  //   }
+  // }
+
   void _onReceiveTaskData(Object data) async {
     try {
       Map payload;
@@ -155,6 +226,7 @@ class _EventMediaScreenState extends ConsumerState<EventMediaScreen> {
       }
 
       final mediaId = payload['mediaId']?.toString();
+      final filePath = payload['filePath']?.toString();
       final status = payload['status']?.toString();
       final progress = (payload['progress'] is num)
           ? (payload['progress'] as num).toDouble()
@@ -183,19 +255,19 @@ class _EventMediaScreenState extends ConsumerState<EventMediaScreen> {
         update['isUploadToS3'] = true;
 
         final fileName = s3Url.split('/').last;
-        final cachedPath = await downloadManager.downloadFile(s3Url, fileName);
-        print('Cached media path: $cachedPath');
+        // final cachedPath = await downloadManager.downloadFile(s3Url, fileName);
+        // print('Cached media path: $cachedPath');
         final mediaType = MediaUtils.resolveMediaType(fileName);
 
-        if (cachedPath != null) {
-          update['cachedMedia'] = cachedPath;
-          update['isMediaCached'] = true;
-          print("✅ Cached $fileName at $cachedPath");
-        }
+        // if (cachedPath != null) {
+        //   update['cachedMedia'] = cachedPath;
+        //   update['isMediaCached'] = true;
+        //   print("✅ Cached $fileName at $cachedPath");
+        // }
 
-        if (mediaType == 'video' && cachedPath != null) {
-          final thumbnail = await MediaUtils.generateVideoThumb(cachedPath);
-          final videoDuration = await MediaUtils.getVideoDuration(cachedPath);
+        if (mediaType == 'video' && filePath != null) {
+          final thumbnail = await MediaUtils.generateVideoThumb(filePath);
+          final videoDuration = await MediaUtils.getVideoDuration(filePath);
 
           update['thumbnail'] = thumbnail;
           update['videoDuration'] = videoDuration;
@@ -233,20 +305,20 @@ class _EventMediaScreenState extends ConsumerState<EventMediaScreen> {
       update['isUploadToS3'] = media.isUploadToS3;
 
       final fileName = (media.s3Url)!.split('/').last;
-      final cachedPath =
-          await downloadManager.downloadFile(media.s3Url!, fileName);
-      print('Cached media path: $cachedPath');
+      // final cachedPath =
+      //     await downloadManager.downloadFile(media.s3Url!, fileName);
+      // print('Cached media path: $cachedPath');
       final mediaType = MediaUtils.resolveMediaType(fileName);
 
-      if (cachedPath != null) {
-        update['cachedMedia'] = cachedPath;
-        update['isMediaCached'] = true;
-        print("✅ Cached $fileName at $cachedPath");
-      }
+      // if (cachedPath != null) {
+      //   update['cachedMedia'] = cachedPath;
+      //   update['isMediaCached'] = true;
+      //   print("✅ Cached $fileName at $cachedPath");
+      // }
 
-      if (mediaType == 'video' && cachedPath != null) {
-        final thumbnail = await MediaUtils.generateVideoThumb(cachedPath);
-        final videoDuration = await MediaUtils.getVideoDuration(cachedPath);
+      if (mediaType == 'video') {
+        final thumbnail = await MediaUtils.generateVideoThumb(media.filePath);
+        final videoDuration = await MediaUtils.getVideoDuration(media.filePath);
 
         update['thumbnail'] = thumbnail;
         update['videoDuration'] = videoDuration;

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -41,8 +42,9 @@ class MediaGrid extends StatelessWidget {
               // also reverse for viewer
               final reversedList = mediaList.reversed.toList();
 
-              final mediaPaths =
-                  reversedList.map((m) => m.cachedMedia!).toList();
+              // final mediaPaths =
+              //     reversedList.map((m) => m.cachedMedia!).toList();
+              final mediaPaths = reversedList.map((m) => m.filePath).toList();
               final mediaTypes = reversedList.map((m) => m.mediaType).toList();
               final startIndex = reversedList.indexOf(item);
 
@@ -214,11 +216,11 @@ class MediaGridItem extends StatelessWidget {
       },
       child: Stack(
         children: [
-          if (item.isMediaCached && item.status == 'success')
+          if (item.status == 'success')
             ClipRRect(
               child: mediaType == 'image'
                   ? Image(
-                      image: FileImage(File(item.cachedMedia!)),
+                      image: FileImage(File(item.filePath)),
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
@@ -255,7 +257,7 @@ class MediaGridItem extends StatelessWidget {
             ),
 
           // ✅ Gradient overlay for text visibility
-          if (item.isMediaCached && item.status == 'success')
+          if (item.status == 'success')
             Positioned(
               left: 0,
               right: 0,
@@ -276,9 +278,7 @@ class MediaGridItem extends StatelessWidget {
             ),
 
           // ✅ Video duration + icon (use cached value)
-          if (item.isMediaCached &&
-              item.status == 'success' &&
-              mediaType == 'video')
+          if (item.status == 'success' && mediaType == 'video')
             Positioned(
               left: 4,
               right: 4,
@@ -304,45 +304,153 @@ class MediaGridItem extends StatelessWidget {
             ),
 
           // ✅ Uploading state
-          if (!item.isMediaCached || item.status == 'uploading')
+          if (item.status == 'uploading')
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.grey.withOpacity(0.3), // 30% opacity
+                // faded background
                 child: const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.orange,
-                    strokeWidth: 3,
+                  child: RotatingSun(), // 🌞 custom rotating sun
+                ),
+              ),
+            ),
+
+          // if (item.status == 'uploading')
+          //   Positioned.fill(
+          //     child: Container(
+          //       color: Colors.black.withOpacity(0.3),
+          //       child: const Center(
+          //         child: CircularProgressIndicator(
+          //           color: Colors.orange,
+          //           strokeWidth: 3,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+
+          // ✅ Failed state
+          if (item.status == 'failed')
+            Positioned.fill(
+              child: ClipRRect(
+                // required for BackdropFilter to work
+                borderRadius: BorderRadius.zero,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6), // blur effect
+                  child: Container(
+                    color: Colors.black
+                        .withOpacity(0.2), // semi-transparent overlay
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🔴 Red warning icon (replace with your SVG)
+                          SvgPicture.asset(
+                            'assets/icons/icon_retry.svg',
+                            height: 32,
+                            width: 32,
+                          ),
+                          const SizedBox(height: 8),
+
+                          GestureDetector(
+                            onTap: () async {
+                              print('Retry TAPPEDDDDDDDD------------');
+                              await _manager.retryUpload(
+                                  item.mediaId, item.filePath, item.retries);
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 6),
+                              margin: EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                border:
+                                    Border.all(width: 1, color: Colors.white),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Retry',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
 
-          // ✅ Failed state
-          if (item.status == 'failed')
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 42, color: Colors.redAccent),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
-                        ),
-                        onPressed: onRetry,
-                        child: const Text("Retry"),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // if (item.status == 'failed')
+          //   Positioned.fill(
+          //     child: Container(
+          //       color: Colors.black.withOpacity(0.5),
+          //       child: Center(
+          //         child: Column(
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [
+          //             const Icon(Icons.error_outline,
+          //                 size: 42, color: Colors.redAccent),
+          //             const SizedBox(height: 8),
+          //             ElevatedButton(
+          //               style: ElevatedButton.styleFrom(
+          //                 backgroundColor: Colors.white,
+          //                 foregroundColor: Colors.black,
+          //               ),
+          //               onPressed: onRetry,
+          //               child: const Text("Retry"),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ),
         ],
+      ),
+    );
+  }
+}
+
+class RotatingSun extends StatefulWidget {
+  const RotatingSun({super.key});
+
+  @override
+  State<RotatingSun> createState() => _RotatingSunState();
+}
+
+class _RotatingSunState extends State<RotatingSun>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2), // full rotation in 2s
+    )..repeat(); // keep rotating
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _controller,
+      child: SvgPicture.asset(
+        'assets/icons/icon_loading.svg',
+        height: 32,
+        width: 32,
+        // tint if needed
       ),
     );
   }

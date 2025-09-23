@@ -393,6 +393,7 @@ class UploadTaskHandler extends TaskHandler {
       FlutterForegroundTask.sendDataToMain({
         'mediaId': mediaId,
         'status': 'failed',
+        'filePath': filePath,
         'message': 'file_not_found',
       });
       _inProgress.remove(mediaId);
@@ -455,6 +456,7 @@ class UploadTaskHandler extends TaskHandler {
             // send real-time update to main isolate (if alive)
             FlutterForegroundTask.sendDataToMain({
               'mediaId': mediaId,
+              'filePath': filePath,
               'status': 'uploading',
               'progress': progress,
               's3Url': s3Url,
@@ -489,6 +491,7 @@ class UploadTaskHandler extends TaskHandler {
 
           FlutterForegroundTask.sendDataToMain({
             'mediaId': mediaId,
+            'filePath': filePath,
             'status': 'success',
             'progress': 1.0,
             's3Url': s3Url,
@@ -512,6 +515,7 @@ class UploadTaskHandler extends TaskHandler {
 
           FlutterForegroundTask.sendDataToMain({
             'mediaId': mediaId,
+            'filePath': filePath,
             'status': 'failed',
             's3Url': s3Url,
           });
@@ -529,6 +533,7 @@ class UploadTaskHandler extends TaskHandler {
         );
         FlutterForegroundTask.sendDataToMain({
           'mediaId': mediaId,
+          'filePath': filePath,
           'status': 'failed',
           'message': 'presign_failed',
         });
@@ -553,6 +558,7 @@ class UploadTaskHandler extends TaskHandler {
 
       FlutterForegroundTask.sendDataToMain({
         'mediaId': mediaId,
+        'filePath': filePath,
         'status': isCancel ? 'paused' : 'failed',
         'message': e.toString(),
       });
